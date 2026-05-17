@@ -1,38 +1,26 @@
 #include "hook.h"
-#include "settings.cpp"
+#include "settings.h"
 #include "util.h"
-namespace AnimatedInteractions
-{
+namespace AnimatedInteractions {
 
-
-    void InputHook::ProcessButton(RE::ActivateHandler *a_this, ButtonEvent *a_event, PlayerControlsData *a_data)
-    {
-        uint32_t keyMask = a_event->idCode;
+    void InputHook::ProcessButton(RE::ActivateHandler* a_this, ButtonEvent* a_event, PlayerControlsData* a_data) {
+        uint32_t keyMask = a_event->GetIDCode();
         uint32_t keyCode;
-        auto device = a_event->device.get();
+        auto     device = a_event->device.get();
 
-        if (device == INPUT_DEVICE::kMouse)
-        {
+        if (device == INPUT_DEVICE::kMouse) {
             keyCode = static_cast<int>(KeyUtil::KBM_OFFSETS::kMacro_NumKeyboardKeys) + keyMask;
-        }
-        else if (device == INPUT_DEVICE::kGamepad)
-        {
+        } else if (device == INPUT_DEVICE::kGamepad) {
             keyCode = KeyUtil::Interpreter::GamepadMaskToKeycode(keyMask);
-        }
-        else
-        {
+        } else {
             keyCode = keyMask;
         }
         auto control = static_cast<std::string>(a_event->QUserEvent());
 
-        if (control == "Activate")
-        {
-            if (a_event->IsUp())
-            {
+        if (control == "Activate") {
+            if (a_event->IsUp()) {
                 can_listen.store(true);
-            }
-            else if (can_listen)
-            {
+            } else if (can_listen) {
                 can_listen.store(false);
                 HandleActivatePress();
             }
@@ -40,20 +28,19 @@ namespace AnimatedInteractions
         _ProcessButton(a_this, a_event, a_data);
     }
 
-    void InputHook::HandleActorPress(const Actor *target)
-    {
+    void InputHook::HandleActorPress(const Actor* target) {
         auto actorBase = target ? target->GetActorBase() : nullptr;
         if (!actorBase)
             return;
         SKSE::log::info("Looting Actor: {} :", actorBase->GetName());
 
-
         // if (target->IsDead())animplyr->PlayAnimation("SearchKneel");
     }
-    void PlayerUpdateHook::FaceObject(TESObjectREFR* refr)
-    {
-        auto* plyr = PlayerCharacter::GetSingleton(); 
-        if (!plyr) { return; }
+    void PlayerUpdateHook::FaceObject(TESObjectREFR* refr) {
+        auto* plyr = PlayerCharacter::GetSingleton();
+        if (!plyr) {
+            return;
+        }
 
         float headingAngle = MathUtil::Angle::DegreeToRadian(plyr->GetHeadingAngle(refr->GetPosition(), false));
         float plyr_angle = plyr->GetAngleZ();
@@ -63,20 +50,15 @@ namespace AnimatedInteractions
         new_angle = MathUtil::Angle::NormalAbsoluteAngle(new_angle);
 
         SKSE::log::info("Player | Original Angle: {} | Heading Angle: {} | New Angle: {}", MathUtil::Angle::RadianToDegree(plyr_angle), MathUtil::Angle::RadianToDegree(headingAngle), MathUtil::Angle::RadianToDegree(new_angle));
-       
+
         QueueRootYaw(new_angle);
     }
-    void InputHook::HandleObjectPress(RE::NiPointer<RE::TESObjectREFR> refr)
-    {
+    void InputHook::HandleObjectPress(RE::NiPointer<RE::TESObjectREFR> refr) {
         auto base = refr ? refr->GetBaseObject() : nullptr;
-        auto* ref = refr.get();
         if (!base)
             return;
-        
 
-
-        switch (base->GetFormType())
-        {
+        switch (base->GetFormType()) {
         case FormType::Door:
             break;
         case FormType::Container:
@@ -92,7 +74,7 @@ namespace AnimatedInteractions
         case FormType::MovableStatic:
             break;
         case FormType::Furniture:
-            break; 
+            break;
         case FormType::PlacedHazard:
             break;
         default:
@@ -103,55 +85,42 @@ namespace AnimatedInteractions
             break;
         }
     }
-    void InputHook::HandleActivatePress()
-    {
-
+    void InputHook::HandleActivatePress() {
         const auto crossHairPickData = RE::CrosshairPickData::GetSingleton();
 
         if (!crossHairPickData)
             return;
-        const auto target = crossHairPickData->target.get();
-        const auto *actorTarget = crossHairPickData->targetActor.get().get();
+        const auto  target = crossHairPickData->target->get();
+        const auto* actorTarget = crossHairPickData->targetActor->get().get();
 
-        if (target)
-        {
+        if (target) {
             HandleObjectPress(target);
             return;
         }
-            
-        if (actorTarget)
-        {
+
+        if (actorTarget) {
             HandleActorPress(actorTarget->As<RE::Actor>());
             return;
         }
-            
     }
 
-    RE::NiAVObject *AnimObjectHook::LoadAnimObject(RE::TESModel *a_model, RE::BIPED_OBJECT a_bipedObj, RE::TESObjectREFR *a_actor, RE::BSTSmartPointer<RE::BipedAnim> &a_biped, RE::NiAVObject *a_root)
-    {
-        RE::TESModel *model = a_model;
-        NiAVObject* output = _LoadAnimObject(model, a_bipedObj, a_actor, a_biped, a_root); 
-        if (const auto animObject = PointerUtil::adjust_pointer<RE::TESObjectANIO>(a_model->GetAsModelTextureSwap(), -0x20); animObject)
-        {
-            if (TakeHandler::IsReplaceable(animObject))
-            {
-
-                if (auto* takenMesh = TakeHandler::GetMeshForTakenObject(output))
-                {
-                    output = takenMesh; 
+    RE::NiAVObject* AnimObjectHook::LoadAnimObject(RE::TESModel* a_model, RE::BIPED_OBJECT a_bipedObj, RE::TESObjectREFR* a_actor, RE::BSTSmartPointer<RE::BipedAnim>& a_biped, RE::NiAVObject* a_root) {
+        RE::TESModel* model = a_model;
+        NiAVObject*   output = _LoadAnimObject(model, a_bipedObj, a_actor, a_biped, a_root);
+        if (const auto animObject = PointerUtil::adjust_pointer<RE::TESObjectANIO>(a_model->GetAsModelTextureSwap(), -0x20); animObject) {
+            if (TakeHandler::IsReplaceable(animObject)) {
+                if (auto* takenMesh = TakeHandler::GetMeshForTakenObject(output)) {
+                    output = takenMesh;
                 }
-                // model->SetModel(TakeHandler::GetAnimObjectPath().c_str()); 
+                // model->SetModel(TakeHandler::GetAnimObjectPath().c_str());
                 // SKSE::log::info("Animobject Path {}", TakeHandler::GetAnimObjectPath());
-                //  if (const auto swappedAnimObject = TakeHandler::GetLinkedAnimObject()) { model = swappedAnimObject; } 
-                 
+                //  if (const auto swappedAnimObject = TakeHandler::GetLinkedAnimObject()) { model = swappedAnimObject; }
             }
-            
         }
 
-         return output;
+        return output;
     }
-    void PlayerPickUpHook::PickUpItem(Actor *a_actor, TESObjectREFR *a_ref, std::int32_t a_count, bool a_arg3, bool a_playSound)
-    {
+    void PlayerPickUpHook::PickUpItem(Actor* a_actor, TESObjectREFR* a_ref, std::int32_t a_count, bool a_arg3, bool a_playSound) {
         // if (a_actor && a_ref)
         // {
         //     TakeHandler::StoreReferenceMesh(a_ref);
@@ -159,33 +128,26 @@ namespace AnimatedInteractions
         // }
         _PickUpItem(a_actor, a_ref, a_count, a_arg3, a_playSound);
     }
-    void PlayerUpdateHook::UpdatePlayer(RE::Actor *a_player, float a_delta)
-    {
+    void PlayerUpdateHook::UpdatePlayer(RE::Actor* a_player, float a_delta) {
         _UpdatePlayer(a_player, a_delta);
 
-        if (UpdateRootYaw(a_player) && UpdateSpinePitch(a_player))
-        {
+        if (UpdateRootYaw(a_player) && UpdateSpinePitch(a_player)) {
             PlayQueuedAnimationTask();
         }
-
     }
 
-    bool PlayerUpdateHook::UpdateRootYaw(RE::Actor *a_player)
-    {
-        if (!should_interp_rotation)
-        {
+    bool PlayerUpdateHook::UpdateRootYaw(RE::Actor* a_player) {
+        if (!should_interp_rotation) {
             return true;
         }
         float player_angle = a_player->data.angle.z;
-        auto *player_camera = RE::PlayerCamera::GetSingleton();
-        if (!player_camera)
-        {
+        auto* player_camera = RE::PlayerCamera::GetSingleton();
+        if (!player_camera) {
             return false;
         }
 
-        auto third_person_state = static_cast<RE::ThirdPersonState *>(player_camera->currentState.get());
-        if (!third_person_state)
-        {
+        auto third_person_state = static_cast<RE::ThirdPersonState*>(player_camera->currentState.get());
+        if (!third_person_state) {
             return false;
         }
         float angle_delta = MathUtil::Angle::NormalRelativeAngle(desired_angle_z - a_player->data.angle.z);
@@ -193,130 +155,116 @@ namespace AnimatedInteractions
 
         angle_delta = MathUtil::Angle::ClipAngle(angle_delta, -max_angle_delta, max_angle_delta);
         float camera_angle = third_person_state->freeRotation.x;
-        
+
         player_angle = player_angle + angle_delta;
 
-        a_player->SetRotationZ(player_angle);
+        a_player->SetHeading(player_angle);
         third_person_state->freeRotation.x = MathUtil::Angle::NormalRelativeAngle(camera_angle - angle_delta);
 
-        if (round(player_angle*10.0f)/10.0f == round(desired_angle_z*10.0f)/10.0f)
-        {
+        if (round(player_angle * 10.0f) / 10.0f == round(desired_angle_z * 10.0f) / 10.0f) {
             SetTurnState(a_player, 1);
             should_interp_rotation.store(false);
             // SKSE::log::info("last_angle {} | player_angle {} | o_delta {}", MathUtil::Angle::RadianToDegree(last_angle_z), MathUtil::Angle::RadianToDegree(player_angle), o_delta);
-            return true; 
+            return true;
         }
-        if (last_angle_z == player_angle)
-        {
-            SetTurnState(a_player, 1); 
-            should_interp_rotation.store(false); 
-            PlayerActivateHook::TriggerStored(); 
+        if (last_angle_z == player_angle) {
+            SetTurnState(a_player, 1);
+            should_interp_rotation.store(false);
+            PlayerActivateHook::TriggerStored();
             return true;
         }
         last_angle_z = player_angle;
 
-        if (angle_delta * angle_delta < FLT_EPSILON)
-        {
+        if (angle_delta * angle_delta < FLT_EPSILON) {
             desired_angle_z = -1.f;
         }
-        SetTurnState(a_player, angle_delta  ? 0 : 2);
+        SetTurnState(a_player, angle_delta ? 0 : 2);
 
         return false;
     }
 
-    bool PlayerUpdateHook::UpdateSpinePitch(RE::Actor *a_player)
-    {
-        if (!should_interp_spine_pitch)
-        {
+    bool PlayerUpdateHook::UpdateSpinePitch(RE::Actor* a_player) {
+        if (!should_interp_spine_pitch) {
             return true;
         }
-        float spine_pitch; 
-        a_player->GetGraphVariableFloat("II_AnimationSpinePitch", spine_pitch); 
-        spine_pitch = MathUtil::Angle::DegreeToRadian(spine_pitch); 
+        float spine_pitch;
+        a_player->GetGraphVariableFloat("II_AnimationSpinePitch", spine_pitch);
+        spine_pitch = MathUtil::Angle::DegreeToRadian(spine_pitch);
 
-        float angle_delta = MathUtil::Angle::NormalRelativeAngle(desired_spine_pitch_z - spine_pitch); 
+        float angle_delta = MathUtil::Angle::NormalRelativeAngle(desired_spine_pitch_z - spine_pitch);
         float max_angle_delta = spine_pitch_speed_mult * *delta_time_ptr;
-        angle_delta = MathUtil::Angle::ClipAngle(angle_delta, -max_angle_delta, max_angle_delta); 
-        
-        spine_pitch = spine_pitch + angle_delta; 
+        angle_delta = MathUtil::Angle::ClipAngle(angle_delta, -max_angle_delta, max_angle_delta);
+
+        spine_pitch = spine_pitch + angle_delta;
 
         auto spine_pitch_degrees = MathUtil::Angle::RadianToDegree(spine_pitch);
 
-        spine_pitch_degrees = MathUtil::Clamp(spine_pitch_degrees, spine_pitch_min_degrees, spine_pitch_max_degrees); 
-        a_player->SetGraphVariableFloat("II_AnimationSpinePitch", spine_pitch_degrees); 
+        spine_pitch_degrees = MathUtil::Clamp(spine_pitch_degrees, spine_pitch_min_degrees, spine_pitch_max_degrees);
+        a_player->SetGraphVariableFloat("II_AnimationSpinePitch", spine_pitch_degrees);
 
-        if ((round(spine_pitch*10.f)/10.f == round(desired_spine_pitch_z*10.f)/10.f) || last_spine_pitch_z == spine_pitch)
-        {
+        if ((round(spine_pitch * 10.f) / 10.f == round(desired_spine_pitch_z * 10.f) / 10.f) || last_spine_pitch_z == spine_pitch) {
             SetTurnState(a_player, 1);
-            should_interp_spine_pitch.store(false); 
+            should_interp_spine_pitch.store(false);
             // SKSE::log::info("last_angle {} | player_angle {} | o_delta {}", MathUtil::Angle::RadianToDegree(last_angle_z), MathUtil::Angle::RadianToDegree(player_angle), o_delta);
-            return true; 
+            return true;
         }
-        last_spine_pitch_z = spine_pitch; 
+        last_spine_pitch_z = spine_pitch;
 
-        if (angle_delta * angle_delta < FLT_EPSILON)
-        {
+        if (angle_delta * angle_delta < FLT_EPSILON) {
             desired_spine_pitch_z = -1.f;
         }
         return false;
     }
 
-    void PlayerUpdateHook::SetTurnState(Actor* a_actor, int turn_state)
-    {
+    void PlayerUpdateHook::SetTurnState(Actor* a_actor, int turn_state) {
         // auto* fixed_strings = FixedStrings::GetSingleton();
         // if (!fixed_strings) { return; }
 
         // a_actor->SetGraphVariableInt(fixed_strings->iSyncTurnState, turn_state);
-        SKSE::GetTaskInterface()->AddTask([a_actor, turn_state]()
-        {
-            a_actor->SetGraphVariableInt("iSyncTurnState",turn_state);
+        SKSE::GetTaskInterface()->AddTask([a_actor, turn_state]() {
+            a_actor->SetGraphVariableInt("iSyncTurnState", turn_state);
         });
     }
-    void PlayerUpdateHook::PlayQueuedAnimationTask()
-    {
-        if (animation_queue.empty()) { return; }
-        SKSE::GetTaskInterface()->AddTask([]() { PlayerUpdateHook::PlayQueuedAnimation(); }); 
+    void PlayerUpdateHook::PlayQueuedAnimationTask() {
+        if (animation_queue.empty()) {
+            return;
+        }
+        SKSE::GetTaskInterface()->AddTask([]() { PlayerUpdateHook::PlayQueuedAnimation(); });
     }
-    void PlayerUpdateHook::PlayQueuedAnimation()
-    {
-        if (animation_queue.empty()) { return; }
+    void PlayerUpdateHook::PlayQueuedAnimation() {
+        if (animation_queue.empty()) {
+            return;
+        }
         // std::this_thread::sleep_for(std::chrono::milliseconds(100));
-        if (spine_pitch_animation)
-        {
-            spine_pitch_animation.store(false); 
-            should_interp_spine_pitch.store(true); 
+        if (spine_pitch_animation) {
+            spine_pitch_animation.store(false);
+            should_interp_spine_pitch.store(true);
         }
         PlayerActivateHook::SetActivationState(AnimPlayer::PlayAnimation(animation_queue.front()));
         animation_queue.pop();
     }
-    float PlayerUpdateHook::InterpAngleZ(float a_current, float a_interpSpeed, float &o_delta)
-    {
+    float PlayerUpdateHook::InterpAngleZ(float a_current, float a_interpSpeed, float& o_delta) {
         o_delta = 0.f;
         float target = desired_angle_z;
         float delta_time = *delta_time_ptr;
-        if (a_interpSpeed <= 0.f)
-        {
+        if (a_interpSpeed <= 0.f) {
             return desired_angle_z;
         }
-        
+
         const float clockwise_distance = target - a_current;
         const float counterclockwise_distance = target + a_current;
 
-        float final_distance= 0.f;
+        float final_distance = 0.f;
 
-        if (MathUtil::Angle::NormalAbsoluteAngle(counterclockwise_distance) < MathUtil::Angle::NormalAbsoluteAngle(clockwise_distance))
-        {
+        if (MathUtil::Angle::NormalAbsoluteAngle(counterclockwise_distance) < MathUtil::Angle::NormalAbsoluteAngle(clockwise_distance)) {
             // final_distance = -counterclockwise_distance;
             float end_angle = a_current > PI ? 2 * PI + 0.1f : 0.1f;
             final_distance = end_angle - a_current;
-        }
-        else 
-        {
+        } else {
             final_distance = clockwise_distance;
         }
 
-        if (final_distance * final_distance < FLT_EPSILON)
-        {
+        if (final_distance * final_distance < FLT_EPSILON) {
             return desired_angle_z;
         }
 
@@ -324,197 +272,169 @@ namespace AnimatedInteractions
 
         return MathUtil::Angle::NormalAbsoluteAngle(a_current + o_delta);
     }
-    void PlayerUpdateHook::QueueRootYaw(float end_angle_z)
-    {
-        if (should_interp_rotation)
-        {
+    void PlayerUpdateHook::QueueRootYaw(float end_angle_z) {
+        if (should_interp_rotation) {
             return;
         }
         should_interp_rotation.store(true);
         yaw_speed_mult = static_cast<float>(Settings::GetSingleton()->GetYawSpeed());
         desired_angle_z = end_angle_z;
     }
-    void PlayerUpdateHook::QueueAnimation(std::string a_name)
-    {
-        animation_queue.emplace(a_name);
+    void PlayerUpdateHook::QueueAnimation(std::string&& a_name) {
+        animation_queue.emplace(std::move(a_name));
     }
-    void PlayerUpdateHook::QueueSpinePitch(Actor* a_actor, float x_diff, float y_diff)
-    {
-        auto scale = a_actor->GetScale(); 
-        desired_spine_pitch_z = y_diff < 0.f ? PI/2.f - acos(MathUtil::Clamp(abs(y_diff) * scale/x_diff, -1.0, 1.0)) : -PI/2.f + acos(MathUtil::Clamp(abs(y_diff) * scale/x_diff, -1.0, 1.0)); 
-        
-        a_actor->SetGraphVariableFloat("II_AnimationSpinePitch", 0.f); 
-        SKSE::log::info("desired spine pitch: {}", MathUtil::Angle::RadianToDegree(desired_spine_pitch_z)); 
-        should_interp_spine_pitch.store(true); 
-        auto* settings = Settings::GetSingleton(); 
+    void PlayerUpdateHook::QueueSpinePitch(Actor* a_actor, float x_diff, float y_diff) {
+        auto scale = a_actor->GetScale();
+        desired_spine_pitch_z = y_diff < 0.f ? std::numbers::pi_v<float> / 2.f - acos(MathUtil::Clamp(abs(y_diff) * scale / x_diff, -1.0, 1.0)) : -PI / 2.f + acos(MathUtil::Clamp(abs(y_diff) * scale / x_diff, -1.0, 1.0));
+
+        a_actor->SetGraphVariableFloat("II_AnimationSpinePitch", 0.f);
+        SKSE::log::info("desired spine pitch: {}", MathUtil::Angle::RadianToDegree(desired_spine_pitch_z));
+        should_interp_spine_pitch.store(true);
+        auto* settings = Settings::GetSingleton();
         spine_pitch_speed_mult = static_cast<float>(settings->GetSpinePitchSpeed());
 
-        spine_pitch_min_degrees = static_cast<float>(settings->GetSpinePitchMin()); 
-        spine_pitch_max_degrees = static_cast<float>(settings->GetSpinePitchMax()); 
+        spine_pitch_min_degrees = static_cast<float>(settings->GetSpinePitchMin());
+        spine_pitch_max_degrees = static_cast<float>(settings->GetSpinePitchMax());
     }
-    void PlayerUpdateHook::QueueAnimationPostRotateSpinePitch(std::string a_name, Actor *a_actor, float x_diff, float y_diff)
-    {
-        QueueAnimation(a_name); 
-        desired_spine_pitch_z = y_diff < 0.f ? atan(abs(y_diff)/x_diff) : -atan(abs(y_diff)/x_diff); 
-        a_actor->SetGraphVariableFloat("II_AnimationSpinePitch", 0.f); 
-        spine_pitch_animation.store(true); 
+    void PlayerUpdateHook::QueueAnimationPostRotateSpinePitch(std::string a_name, Actor* a_actor, float x_diff, float y_diff) {
+        QueueAnimation(std::move(a_name));
+        desired_spine_pitch_z = y_diff < 0.f ? atan(abs(y_diff) / x_diff) : -atan(abs(y_diff) / x_diff);
+        a_actor->SetGraphVariableFloat("II_AnimationSpinePitch", 0.f);
+        spine_pitch_animation.store(true);
     }
-    bool PlayerActivateHook::ActivateRef(TESObjectREFR *a_ref, TESObjectREFR *a_activate_trigger, uint8_t a_arg2, TESBoundObject *a_object, int32_t a_count, bool a_defaultProcessingOnly)
-    {
-        if (is_activating)
-        {
-            if (Settings::GetSingleton()->GetAnimationBlockActivation()) 
-            { 
-                return false; 
+    bool PlayerActivateHook::ActivateRef(TESObjectREFR* a_ref, TESObjectREFR* a_activate_trigger, uint8_t a_arg2, TESBoundObject* a_object, int32_t a_count, bool a_defaultProcessingOnly) {
+        if (is_activating) {
+            if (Settings::GetSingleton()->GetAnimationBlockActivation()) {
+                return false;
             }
-        } 
+        }
         return _ActivateRef(a_ref, a_activate_trigger, a_arg2, a_object, a_count, a_defaultProcessingOnly);
     }
-    void PlayerActivateHook::CrosshairActivate(Actor *a_actor)
-    {
-        if (auto* camera = PlayerCamera::GetSingleton())
-        {
-            if (!Settings::GetSingleton()->GetForceThirdPerson() && camera->IsInFirstPerson()) { return _CrosshairActivate(a_actor); }
-        }
-        if (auto* actor_state = a_actor->AsActorState())
-        {
-            if (actor_state->IsWeaponDrawn() || actor_state->actorState1.sitSleepState == SIT_SLEEP_STATE::kRidingMount)
-            {
+    void PlayerActivateHook::CrosshairActivate(Actor* a_actor) {
+        if (auto* camera = PlayerCamera::GetSingleton()) {
+            if (!Settings::GetSingleton()->GetForceThirdPerson() && camera->IsInFirstPerson()) {
                 return _CrosshairActivate(a_actor);
             }
         }
-        if (is_activating)
-        {
-            if (Settings::GetSingleton()->GetAnimationBlockActivation()) 
-            { 
-                return; 
+        if (auto* actor_state = a_actor->AsActorState()) {
+            if (actor_state->IsWeaponDrawn() || actor_state->actorState1.sitSleepState == SIT_SLEEP_STATE::kRidingMount) {
+                return _CrosshairActivate(a_actor);
+            }
+        }
+        if (is_activating) {
+            if (Settings::GetSingleton()->GetAnimationBlockActivation()) {
+                return;
             }
             return _CrosshairActivate(a_actor);
-        } 
-        auto ref = CrosshairPickData::GetSingleton()->target.get().get();
-
-        if (!ref || !a_actor) 
-        {
-            return _CrosshairActivate(a_actor); 
         }
-        auto* base = ref->GetBaseObject(); 
+        auto ref = CrosshairPickData::GetSingleton()->target->get().get();
 
-        switch(base->GetFormType())
-        {
-            case FormType::Door:
-                if (!Settings::GetSingleton()->GetDoorAnimation()) { return  _CrosshairActivate(a_actor); }
-                PlayerUpdateHook::QueueAnimation("UseDoor");
-                return  _CrosshairActivate(a_actor);
-            case FormType::Container:
-            {
-                if (!Settings::GetSingleton()->GetContainerAnimation()) { return  _CrosshairActivate(a_actor); }
-                auto* ref_model = ref->Get3D(); 
-                if (!ref_model) { return  _CrosshairActivate(a_actor); }
+        if (!ref || !a_actor) {
+            return _CrosshairActivate(a_actor);
+        }
+        auto* base = ref->GetBaseObject();
 
-                ref_model->world.translate.z < a_actor->GetPositionZ() ? 
-                PlayerUpdateHook::QueueAnimation("SearchChest") : 
-                PlayerUpdateHook::QueueAnimation("UseDoor");
-                return  _CrosshairActivate(a_actor);
+        switch (base->GetFormType()) {
+        case FormType::Door:
+            if (!Settings::GetSingleton()->GetDoorAnimation()) {
+                return _CrosshairActivate(a_actor);
             }
-            case FormType::ActorCharacter:
-                return  _CrosshairActivate(a_actor);
-            case FormType::Activator:
-                return  _CrosshairActivate(a_actor);
-            case FormType::TalkingActivator:
-                return  _CrosshairActivate(a_actor);
-            case FormType::NPC:
+            PlayerUpdateHook::QueueAnimation("UseDoor");
+            return _CrosshairActivate(a_actor);
+        case FormType::Container:
             {
-                if (ref->IsDead())
-                {
-                    PlayerUpdateHook::QueueAnimation("SearchKneel"); 
+                if (!Settings::GetSingleton()->GetContainerAnimation()) {
+                    return _CrosshairActivate(a_actor);
+                }
+                auto* ref_model = ref->Get3D();
+                if (!ref_model) {
+                    return _CrosshairActivate(a_actor);
+                }
+
+                ref_model->world.translate.z < a_actor->GetPositionZ() ?
+                    PlayerUpdateHook::QueueAnimation("SearchChest") :
+                    PlayerUpdateHook::QueueAnimation("UseDoor");
+                return _CrosshairActivate(a_actor);
+            }
+        case FormType::ActorCharacter:
+        case FormType::Activator:
+        case FormType::TalkingActivator:
+            return _CrosshairActivate(a_actor);
+        case FormType::NPC:
+            {
+                if (ref->IsDead()) {
+                    PlayerUpdateHook::QueueAnimation("SearchKneel");
                     break;
                 }
-                return  _CrosshairActivate(a_actor);
+                return _CrosshairActivate(a_actor);
             }
-            case FormType::Static:
-                return  _CrosshairActivate(a_actor);
-            case FormType::MovableStatic:
-                return  _CrosshairActivate(a_actor);
-            case FormType::Furniture:
-                return  _CrosshairActivate(a_actor);
-            case FormType::PlacedHazard:
-                return  _CrosshairActivate(a_actor);
-            case FormType::Ingredient:
-                return _CrosshairActivate(a_actor); 
-            case FormType::Flora:
-                return  _CrosshairActivate(a_actor);
-            case FormType::Tree:
-                return _CrosshairActivate(a_actor); 
-            default:
-                TakeHandler::StoreReferenceMesh(ref);
-                TakeHandler::HandlePickUp(ref);
-                // is_activating.store(true);
-                // current_activation = Activation();
-                // return _ActivateRef(a_ref, a_activate_trigger, a_arg2, a_object, a_count, a_defaultProcessingOnly);
+        case FormType::Static:
+        case FormType::MovableStatic:
+        case FormType::Furniture:
+        case FormType::PlacedHazard:
+        case FormType::Ingredient:
+        case FormType::Flora:
+        case FormType::Tree:
+            return _CrosshairActivate(a_actor);
+        default:
+            TakeHandler::StoreReferenceMesh(ref);
+            TakeHandler::HandlePickUp(ref);
+            // is_activating.store(true);
+            // current_activation = Activation();
+            // return _ActivateRef(a_ref, a_activate_trigger, a_arg2, a_object, a_count, a_defaultProcessingOnly);
         }
-        SetActivationState(true); 
-        current_simple_activation = SimpleActivation(a_actor, ref); 
+        SetActivationState(true);
+        current_simple_activation = SimpleActivation(a_actor, ref);
         PlayerUpdateHook::FaceObject(ref);
     }
-    void PlayerActivateHook::SetActivationState(bool a_enable)
-    {
-        if (!a_enable)
-        {
-            TriggerStoredSimple(); 
+    void PlayerActivateHook::SetActivationState(bool a_enable) {
+        if (!a_enable) {
+            TriggerStoredSimple();
         }
         is_activating.store(a_enable);
     }
-    void PlayerActivateHook::TriggerStored()
-    {
-        if (!current_activation.IsValid() || current_activation.bound_object == nullptr) 
-        { 
-            return; 
+    void PlayerActivateHook::TriggerStored() {
+        if (!current_activation.IsValid() || current_activation.bound_object == nullptr) {
+            return;
         }
-        SKSE::log::info("Triggering stored! Ref Type: {}", current_activation.ref->GetBaseObject()->GetFormType()); 
+        SKSE::log::info("Triggering stored! Ref Type: {}", current_activation.ref->GetBaseObject()->GetFormType());
         // current_activation.ref->GetBaseObject()->Activate(current_activation.ref, current_activation.activate_trigger,current_activation.arg2, current_activation.bound_object, current_activation.count); crash
-        current_activation.ref->ActivateRef(current_activation.activate_trigger, current_activation.arg2, current_activation.bound_object, current_activation.count, current_activation.default_processing_only); 
+        current_activation.ref->ActivateRef(current_activation.activate_trigger, current_activation.arg2, current_activation.bound_object, current_activation.count, current_activation.default_processing_only);
         current_activation = Activation();
         // is_activating.store(false);
     }
-    void PlayerActivateHook::TriggerStoredSimple()
-    {
-        if (!current_simple_activation.IsValid()) { return; }
-        auto* pick_data = CrosshairPickData::GetSingleton();
-        TESObjectREFR *ref = current_simple_activation.ref;
+    void PlayerActivateHook::TriggerStoredSimple() {
+        if (!current_simple_activation.IsValid()) {
+            return;
+        }
+        auto*          pick_data = CrosshairPickData::GetSingleton();
+        TESObjectREFR* ref = current_simple_activation.ref;
 
-        pick_data->target = RE::ObjectRefHandle(ref);
+        *pick_data->target = RE::ObjectRefHandle(ref);
         ActivateFromCrosshair(current_simple_activation.actor);
-        current_simple_activation = SimpleActivation(); 
+        current_simple_activation = SimpleActivation();
     }
 
-    EventResult PlayerGraphEventHook::ProcessEvent(RE::BSTEventSink<RE::BSAnimationGraphEvent> *a_sink, RE::BSAnimationGraphEvent *a_event, RE::BSTEventSource<RE::BSAnimationGraphEvent> *a_eventSource)
-    {
-        if (!PlayerActivateHook::GetActivationState()) 
-        { 
+    EventResult PlayerGraphEventHook::ProcessEvent(RE::BSTEventSink<RE::BSAnimationGraphEvent>* a_sink, RE::BSAnimationGraphEvent* a_event, RE::BSTEventSource<RE::BSAnimationGraphEvent>* a_eventSource) {
+        if (!PlayerActivateHook::GetActivationState()) {
             // SKSE::log::info("Event {}", a_event->tag);
             return _ProcessEvent(a_sink, a_event, a_eventSource);
         }
-        if (a_event->tag == "TriggerActivate")
-        {
+
+        if (a_event->tag == "TriggerActivate") {
             // PlayerActivateHook::TriggerStored();
-            PlayerActivateHook::TriggerStoredSimple(); 
+            PlayerActivateHook::TriggerStoredSimple();
 
             // is_active.store(false);
-        }
-        else if (a_event->tag == "InteractEnd")
-        {
+        } else if (a_event->tag == "InteractEnd") {
             PlayerActivateHook::Reset();
-        }
-        else if (a_event->tag == "IdleStop")
-        {
+        } else if (a_event->tag == "IdleStop") {
             PlayerActivateHook::Reset();
-        }
-        else 
-        {
+        } else {
             return _ProcessEvent(a_sink, a_event, a_eventSource);
         }
         // SKSE::log::info("Event {}", a_event->tag);
-        
+
         return _ProcessEvent(a_sink, a_event, a_eventSource);
     }
 

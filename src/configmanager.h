@@ -1,20 +1,14 @@
-#pragma once 
-#include "util.h"
+#pragma once
 #include "SimpleIni.h"
+#include "util.h"
 
+namespace AnimatedInteractions {
 
-
-namespace AnimatedInteractions
-{
-
-    struct Config
-    {
-        public:  
+    struct Config {
+    public:
         NiTransform transform;
-        
 
-        inline void BuildFromString(std::string raw)
-        {
+        inline void BuildFromString(std::string raw) {
             std::vector<std::string> AlignParts = Util::String::Split(raw, "|"sv);
             transform = NiTransform();
 
@@ -27,44 +21,34 @@ namespace AnimatedInteractions
                 return;
 
             std::vector<float> rotateValues = Util::String::ToFloatVector(Util::String::Split(AlignParts[1], ","sv));
-            RE::NiPoint3 rotationVector = MathUtil::Angle::ToRadianVector(rotateValues[0], rotateValues[1], rotateValues[2]);
+            RE::NiPoint3       rotationVector = MathUtil::Angle::ToRadianVector(rotateValues[0], rotateValues[1], rotateValues[2]);
             transform.rotate.SetEulerAnglesXYZ(rotationVector);
 
             if (AlignParts.size() == 2)
                 return;
 
-            float scale = atof(AlignParts[2].c_str());
+            auto scale = static_cast<float>(atof(AlignParts[2].c_str()));
             transform.scale = scale;
         }
 
-        private: 
-        
+    private:
     };
-    class ConfigManager
-    {
-        public: 
-
-
+    class ConfigManager {
+    public:
         static Config* GetMeshConfigPtr(std::string mesh_path);
         static Config* GetFormConfigPtr(FormType form_type);
-
-        
 
         static void LoadMasterConfig();
         static void LoadUserConfigs();
 
-        static void LoadAllConfigs()
-        {
-            LoadMasterConfig(); 
+        static void LoadAllConfigs() {
+            LoadMasterConfig();
             LoadUserConfigs();
         }
 
-
-        private: 
-
-        static inline std::unordered_map<std::string, Config> mesh_configs; 
+    private:
+        static inline std::unordered_map<std::string, Config> mesh_configs;
 
         static inline std::unordered_map<std::string, Config> form_configs;
-        
     };
 }
